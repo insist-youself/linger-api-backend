@@ -1,32 +1,32 @@
 package com.yupi.project.controller;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.yupi.lingerapiclientsdk.client.LingerApiClient;
+import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
 import com.yupi.project.annotation.AuthCheck;
-import com.yupi.project.common.BaseResponse;
-import com.yupi.project.common.DeleteRequest;
-import com.yupi.project.common.ErrorCode;
-import com.yupi.project.common.ResultUtils;
+import com.yupi.project.common.*;
 import com.yupi.project.constant.CommonConstant;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.model.dto.interfaceInfo.InterfaceInfoAddRequest;
+import com.yupi.project.model.dto.interfaceInfo.InterfaceInfoInvokeRequest;
 import com.yupi.project.model.dto.interfaceInfo.InterfaceInfoQueryRequest;
 import com.yupi.project.model.dto.interfaceInfo.InterfaceInfoUpdateRequest;
-import com.yupi.project.model.entity.InterfaceInfo;
-import com.yupi.project.model.entity.User;
+import com.yupi.project.model.enums.InterfaceInfoStatusEnum;
 import com.yupi.project.service.InterfaceInfoService;
 import com.yupi.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
-
+import com.yupi.lingerapicommon.model.entity.User;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
- * 帖子接口
+ * 接口管理
  *
  * @author yupi
  */
@@ -40,6 +40,9 @@ public class InterfaceInfoController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private LingerApiClient lingerApiClient;
 
     // region 增删改查
 
@@ -195,5 +198,118 @@ public class InterfaceInfoController {
     }
 
     // endregion
+    /**
+     * 发布
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/online")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> onlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+        // 1. 验证id是否为null或小于0
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 校验接口是否存在
+        long id = idRequest.getId();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 2. 判断该接口是否可以调用
+        com.yupi.lingerapiclientsdk.model.User user = new com.yupi.lingerapiclientsdk.model.User();
+        user.setUsername("test");
+        String userName = lingerApiClient.getUserNameByPost(user);
+        if (StringUtils.isBlank(userName)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口验证错误");
+        }
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setId(id);
+        // 3. 修改数据库中的状态字段为上线
+        interfaceInfo.setStatus(InterfaceInfoStatusEnum.ONLINE.getValue());
+        // 调用interfaceInfoService的updateById方法，更新该接口状态
+        boolean result = interfaceInfoService.updateById(interfaceInfo);
+        // 返回一个成功的响应，响应体中携带result值
+        return ResultUtils.success(result);
+    }
+    /**
+     * 下线
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/offline")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean>  offlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+        // 验证id是否为null或小于0
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 1. 校验接口是否存在
+        long id = idRequest.getId();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setId(id);
+        // 2. 修改数据库中的状态字段为上线
+        interfaceInfo.setStatus(InterfaceInfoStatusEnum.OFFLINE.getValue());
+        // 调用interfaceInfoService的updateById方法，更新该接口状态
+        boolean result = interfaceInfoService.updateById(interfaceInfo);
+        // 返回一个成功的响应，响应体中携带result值
+        return ResultUtils.success(result);
+    }
+
+    /**
+     *  测试调用
+     *
+     * @param interfaceInfoInvokeRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/invoke")
+    // 这里给它新封装一个参数InterfaceInfoInvokeRequest
+    // 返回结果把对象发出去就好了，因为不确定接口的返回值到底是什么
+    public BaseResponse<Object> invokeInterfaceInfo(@RequestBody InterfaceInfoInvokeRequest interfaceInfoInvokeRequest,
+                                                    HttpServletRequest request) {
+        // 验证id是否为null或小于0
+        if (interfaceInfoInvokeRequest == null || interfaceInfoInvokeRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 1. 校验接口是否存在
+        long id = interfaceInfoInvokeRequest.getId();
+        String userRequestParams = interfaceInfoInvokeRequest.getUserRequestParams();
+        // 判断对应接口是否存在
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 检查接口状态是否为下线状态
+        if (oldInterfaceInfo.getStatus() == InterfaceInfoStatusEnum.OFFLINE.getValue()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口已关闭");
+        }
+        // 获取当前登录用户的ak和sk，这样相当于用户自己的这个身份去调用，
+        // 也不会担心它刷接口，因为知道是谁刷了这个接口，会比较安全
+        User loginUser = userService.getLoginUser(request);
+        String accessKey = loginUser.getAccessKey();
+        String secretKey = loginUser.getSecretKey();
+        // 我们只需要进行测试调用，所以我们需要解析传递过来的参数
+        // 将用户请求参数转换为com.yupi.lingerapiclientsdk.model.User对象
+        // 创建一个临时的lingerApiClient对象, 并且传入ak, sk
+        LingerApiClient tempClient = new LingerApiClient(accessKey, secretKey);
+      /*  Gson gson = new Gson();
+        com.yupi.lingerapiclientsdk.model.User user = gson.fromJson(userRequestParams, com.yupi.lingerapiclientsdk.model.User.class);*/
+        //使用JSONUtil简化代码
+        com.yupi.lingerapiclientsdk.model.User user = JSONUtil.toBean(userRequestParams, com.yupi.lingerapiclientsdk.model.User.class);
+        String userNameByPost = tempClient.getUserNameByPost(user);
+        // 返回一个成功的响应，响应体中携带result值
+        return ResultUtils.success(userNameByPost);
+    }
 
 }
