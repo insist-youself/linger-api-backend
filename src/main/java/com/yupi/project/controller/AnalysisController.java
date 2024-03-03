@@ -2,14 +2,16 @@ package com.yupi.project.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yupi.lingerapicommon.common.BaseResponse;
+import com.yupi.lingerapicommon.common.ErrorCode;
+import com.yupi.lingerapicommon.common.ResultUtils;
+import com.yupi.lingerapicommon.constant.UserConstant;
 import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
 import com.yupi.lingerapicommon.model.entity.UserInterfaceInfo;
+import com.yupi.lingerapicommon.model.vo.InterfaceInfoVO;
 import com.yupi.project.annotation.AuthCheck;
-import com.yupi.project.common.BaseResponse;
-import com.yupi.project.common.ResultUtils;
-import com.yupi.project.constant.UserConstant;
+import com.yupi.project.exception.ThrowUtils;
 import com.yupi.project.mapper.UserInterfaceInfoMapper;
-import com.yupi.project.model.vo.InterfaceInfoVO;
 import com.yupi.project.service.InterfaceInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,12 +43,14 @@ public class AnalysisController {
     public BaseResponse<List<InterfaceInfoVO>> ListTopInvokeInterfaceInfo(){
         // 1.获取用户接口表中总调用次数最大的3个接口
         List<UserInterfaceInfo> userInterfaceInfoList = userInterfaceInfoMapper.listTopInvokeInterfaceInfo(3);
+        ThrowUtils.throwIf(userInterfaceInfoList == null, ErrorCode.SYSTEM_ERROR, "接口信息不存在");
         // 2.使用stream流按接口id进行分类
         Map<Long, List<UserInterfaceInfo>> map = userInterfaceInfoList.stream()
                 .collect(Collectors.groupingBy(UserInterfaceInfo::getInterfaceInfoId));
         QueryWrapper<InterfaceInfo> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("id", map.keySet());
         List<InterfaceInfo> list = interfaceInfoService.list(queryWrapper);
+        ThrowUtils.throwIf(list == null, ErrorCode.SYSTEM_ERROR, "接口信息不存在");
         // 构建接口信息vo列表，使用流式处理将接口信息映射为接口信息vo对象，并加入到列表中
         List<InterfaceInfoVO> interfaceInfoVOList = list.stream().map(interfaceInfo -> {
             InterfaceInfoVO interfaceInfoVO = new InterfaceInfoVO();

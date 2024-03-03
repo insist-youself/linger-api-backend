@@ -1,6 +1,6 @@
 package com.yupi.project.config;
 
-import com.yupi.project.common.AliOssUtil;
+import com.yupi.project.utils.AliOssUtil;
 import com.yupi.project.properties.AliOssProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

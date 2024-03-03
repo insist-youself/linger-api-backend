@@ -1,9 +1,9 @@
 package com.yupi.project.service.impl.inner;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yupi.lingerapicommon.common.ErrorCode;
 import com.yupi.lingerapicommon.model.entity.User;
 import com.yupi.lingerapicommon.service.InnerUserService;
-import com.yupi.project.common.ErrorCode;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.mapper.UserMapper;
 import org.apache.commons.lang3.StringUtils;

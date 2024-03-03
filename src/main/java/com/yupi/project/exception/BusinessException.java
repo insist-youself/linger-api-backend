@@ -1,6 +1,5 @@
 package com.yupi.project.exception;
-
-import com.yupi.project.common.ErrorCode;
+import com.yupi.lingerapicommon.common.ErrorCode;
 
 /**
  * 自定义异常类

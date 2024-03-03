@@ -1,25 +1,35 @@
 package com.yupi.project.service.impl;
-
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.yupi.lingerapicommon.common.ErrorCode;
+import com.yupi.lingerapicommon.constant.CommonConstant;
+import com.yupi.lingerapicommon.model.dto.user.UserQueryRequest;
 import com.yupi.lingerapicommon.model.entity.User;
-import com.yupi.project.common.ErrorCode;
+import com.yupi.lingerapicommon.model.vo.LoginUserVO;
+import com.yupi.lingerapicommon.model.vo.UserVO;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.mapper.UserMapper;
 import com.yupi.project.service.UserService;
+import com.yupi.project.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
-import static com.yupi.project.constant.UserConstant.ADMIN_ROLE;
-import static com.yupi.project.constant.UserConstant.USER_LOGIN_STATE;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import static com.yupi.lingerapicommon.constant.UserConstant.USER_LOGIN_STATE;
+import static com.yupi.lingerapicommon.constant.UserConstant.ADMIN_ROLE;
 
 /**
  * 用户服务实现类
@@ -162,6 +172,71 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
+    }
+
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(userVO, userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVO> getUserVO(List<User> userList) {
+        if (CollectionUtil.isEmpty(userList)){
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean updateSecretKey(Long id) {
+        User user = getById(id);
+        // 使用 DigestUtil.md5Hex 将盐值、用户账户 和 5或8 位随机数进行 md5 加密
+        String accessKey = DigestUtil.md5Hex(SALT + user.getUserAccount() + RandomUtil.randomString(5));
+        String secretKey = DigestUtil.md5Hex(SALT + user.getUserAccount() + RandomUtil.randomString(8));
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        user.setAccessKey(accessKey);
+        user.setSecretKey(secretKey);
+        return this.updateById(user);
+    }
+
+    @Override
+    public LoginUserVO getLoginUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        LoginUserVO loginUserVO = new LoginUserVO();
+        BeanUtils.copyProperties(user, loginUserVO);
+        return loginUserVO;
+    }
+
+    @Override
+    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = userQueryRequest.getId();
+        String unionId = userQueryRequest.getUnionId();
+        String mpOpenId = userQueryRequest.getMpOpenId();
+        String userName = userQueryRequest.getUserName();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(id != null, "id", id);
+        queryWrapper.eq(StringUtils.isNotBlank(unionId), "unionId", unionId);
+        queryWrapper.eq(StringUtils.isNotBlank(mpOpenId), "mpOpenId", mpOpenId);
+        queryWrapper.eq(StringUtils.isNotBlank(userRole), "userRole", userRole);
+        queryWrapper.like(StringUtils.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.like(StringUtils.isNotBlank(userName), "userName", userName);
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
+                sortField);
+        return queryWrapper;
     }
 
 }

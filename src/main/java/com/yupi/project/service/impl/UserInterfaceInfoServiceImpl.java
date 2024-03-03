@@ -1,14 +1,12 @@
 package com.yupi.project.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
-import com.yupi.lingerapicommon.model.entity.User;
+import com.yupi.lingerapicommon.common.ErrorCode;
 import com.yupi.lingerapicommon.model.entity.UserInterfaceInfo;
-import com.yupi.project.common.ErrorCode;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.mapper.UserInterfaceInfoMapper;
-
 import com.yupi.project.service.UserInterfaceInfoService;
 import org.springframework.stereotype.Service;
 
@@ -47,9 +45,30 @@ public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoM
         UpdateWrapper<UserInterfaceInfo> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("interfaceInfoId", interfaceInfoId);
         updateWrapper.eq("userId", userId);
-        //TODO 1. 加入Redission分布式锁，保证数据的一致性  2. 修复leftNum < 0还会继续递减的bug
+        //TODO 1. 加入Redission分布式锁，保证数据的一致性
+        //修复leftNum < 0还会继续递减的bug，使用乐观锁解决数据多线程情况下的剩余调用接口数量异常问题
+        updateWrapper.gt("leftNum", 0);
         updateWrapper.setSql("leftNum = leftNum - 1 , totalNum = totalNum + 1");
-        return this.update(updateWrapper);
+        boolean update = this.update(updateWrapper);
+        if(!update) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "剩余接口调用次数不足，请充值！");
+        }
+        return update;
+    }
+
+    @Override
+    public Integer getLeftNum(long interfaceInfoId, long userId) {
+        if (interfaceInfoId <= 0 || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        LambdaQueryWrapper<UserInterfaceInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserInterfaceInfo::getInterfaceInfoId, interfaceInfoId);
+        queryWrapper.eq(UserInterfaceInfo::getUserId, userId);
+        UserInterfaceInfo userInterfaceInfo = getOne(queryWrapper);
+        if(userInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "剩余接口调用次数不足，请充值！");
+        }
+        return userInterfaceInfo.getLeftNum();
     }
 }
 

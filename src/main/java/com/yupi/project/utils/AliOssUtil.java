@@ -1,4 +1,4 @@
-package com.yupi.project.common;
+package com.yupi.project.utils;
 
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
