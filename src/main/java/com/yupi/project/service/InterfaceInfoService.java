@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yupi.lingerapiclientsdk.client.LingerApiClient;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoQueryRequest;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoUpdateRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
 import com.yupi.lingerapicommon.model.vo.InterfaceInfoVO;
 

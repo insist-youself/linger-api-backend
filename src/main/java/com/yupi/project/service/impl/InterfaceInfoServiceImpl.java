@@ -1,5 +1,6 @@
 package com.yupi.project.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -7,8 +8,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yupi.lingerapiclientsdk.client.LingerApiClient;
 import com.yupi.lingerapicommon.common.ErrorCode;
 import com.yupi.lingerapicommon.constant.CommonConstant;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoQueryRequest;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoUpdateRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
 import com.yupi.lingerapicommon.model.entity.User;
 import com.yupi.lingerapicommon.model.entity.UserInterfaceInfo;
@@ -71,7 +72,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
     @Override
     public InterfaceInfoVO getInterfaceInfoVO(InterfaceInfo interfaceInfo, HttpServletRequest request) {
         InterfaceInfoVO interfaceInfoVO = InterfaceInfoVO.objToVo(interfaceInfo);
-        // 1. 关联查询用户信息
+        // 1. 关联查询当前登录用户信息
         Long userId = interfaceInfo.getUserId();
         User user = null;
         if (userId != null || userId > 0) {
@@ -80,7 +81,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         UserVO userVO = userService.getUserVO(user);
         interfaceInfoVO.setUser(userVO);
         // 封装请求参数说明 和 响应参数说明
-        List<RequestParamsRemarkVO> requestParamsRemarkVOList = JSONUtil.toList(JSONUtil.parseArray(interfaceInfo.getRequestParams()), RequestParamsRemarkVO.class);
+        List<RequestParamsRemarkVO> requestParamsRemarkVOList = JSONUtil.toList(JSONUtil.parseArray(interfaceInfo.getRequestParamsRemark()), RequestParamsRemarkVO.class);
         List<ResponseParamsRemarkVO> responseParamsRemarkVOList = JSONUtil.toList(JSONUtil.parseArray(interfaceInfo.getResponseParamsRemark()), ResponseParamsRemarkVO.class);
         interfaceInfoVO.setRequestParamsRemark(requestParamsRemarkVOList);
         interfaceInfoVO.setResponseParamsRemark(responseParamsRemarkVOList);
@@ -139,7 +140,9 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         }
         // 1.关联查询用户信息
         Set<Long> userIdList = interfaceInfoList.stream().map(InterfaceInfo::getUserId).collect(Collectors.toSet());
-        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdList).stream().collect(Collectors.groupingBy(User::getId));
+        ThrowUtils.throwIf(CollectionUtil.isEmpty(userIdList), ErrorCode.NOT_FOUND_ERROR, "未查询到对应接口，请重新设置查询信息!");
+        List<User> users = userService.listByIds(userIdList);
+        Map<Long, List<User>> userIdUserListMap = users.stream().collect(Collectors.groupingBy(User::getId));
         // 2.填充信息
         List<InterfaceInfoVO> interfaceInfoVOList = interfaceInfoList.stream().
                 map(interfaceInfo -> {

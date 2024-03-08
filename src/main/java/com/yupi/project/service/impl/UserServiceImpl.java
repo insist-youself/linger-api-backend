@@ -9,6 +9,7 @@ import com.yupi.lingerapicommon.common.ErrorCode;
 import com.yupi.lingerapicommon.constant.CommonConstant;
 import com.yupi.lingerapicommon.model.dto.user.UserQueryRequest;
 import com.yupi.lingerapicommon.model.entity.User;
+import com.yupi.lingerapicommon.model.enums.UserRoleEnum;
 import com.yupi.lingerapicommon.model.vo.LoginUserVO;
 import com.yupi.lingerapicommon.model.vo.UserVO;
 import com.yupi.project.exception.BusinessException;
@@ -82,9 +83,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             // 3. 插入数据
             User user = new User();
             user.setUserAccount(userAccount);
+            user.setUserName(StringUtils.upperCase(userAccount));
             user.setUserPassword(encryptPassword);
             user.setAccessKey(accessKey);
             user.setSecretKey(secretKey);
+            user.setUserAvatar("https://image-bed-ichensw.oss-cn-hangzhou.aliyuncs.com/Multiavatar-f5871c303317a4dafbf6.png");
             boolean saveResult = this.save(user);
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -94,7 +97,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -119,8 +122,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         // 3. 记录用户的登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
-        return user;
+        return this.getLoginUserVO(user);
     }
+
+
+//    @Override
+//    public LoginUserVO userLoginByMpOpen(WxOAuth2UserInfo wxOAuth2UserInfo, HttpServletRequest request) {
+//        String unionId = wxOAuth2UserInfo.getUnionId();
+//        String mpOpenId = wxOAuth2UserInfo.getOpenid();
+//        // 单机锁
+//        synchronized (unionId.intern()) {
+//            // 查询用户是否已存在
+//            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+//            queryWrapper.eq("unionId", unionId);
+//            User user = this.getOne(queryWrapper);
+//            // 被封号，禁止登录
+//            if (user != null && UserRoleEnum.BAN.getValue().equals(user.getUserRole())) {
+//                throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "该用户已被封，禁止登录");
+//            }
+//            // 用户不存在则创建
+//            if (user == null) {
+//                user = new User();
+//                user.setUnionId(unionId);
+//                user.setMpOpenId(mpOpenId);
+//                user.setUserAvatar(wxOAuth2UserInfo.getHeadImgUrl());
+//                user.setUserName(wxOAuth2UserInfo.getNickname());
+//                boolean result = this.save(user);
+//                if (!result) {
+//                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败");
+//                }
+//            }
+//            // 记录用户的登录态
+//            request.getSession().setAttribute(USER_LOGIN_STATE, user);
+//            return getLoginUserVO(user);
+//        }
+//    }
 
     /**
      * 获取当前登录用户
@@ -146,6 +182,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     /**
+     * 获取当前登录用户（允许未登录）
+     *
+     * @param request
+     * @return
+     */
+    @Override
+    public User getLoginUserPermitNull(HttpServletRequest request) {
+        // 先判断是否已登录
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        if (currentUser == null || currentUser.getId() == null) {
+            return null;
+        }
+        // 从数据库查询（追求性能的话可以注释，直接走缓存）
+        long userId = currentUser.getId();
+        return this.getById(userId);
+    }
+
+    /**
      * 是否为管理员
      *
      * @param request
@@ -156,7 +211,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 仅管理员可查询
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;
-        return user != null && ADMIN_ROLE.equals(user.getUserRole());
+        return isAdmin(user);
+    }
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
     }
 
     /**
@@ -180,7 +240,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return null;
         }
         UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(userVO, userVO);
+        BeanUtils.copyProperties(user, userVO);
         return userVO;
     }
 

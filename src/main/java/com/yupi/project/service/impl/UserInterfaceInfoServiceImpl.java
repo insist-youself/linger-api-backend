@@ -1,74 +1,117 @@
 package com.yupi.project.service.impl;
-
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yupi.lingerapicommon.common.ErrorCode;
+import com.yupi.lingerapicommon.constant.CommonConstant;
+import com.yupi.lingerapicommon.model.dto.userinterfaceinfo.UserInterfaceInfoQueryRequest;
 import com.yupi.lingerapicommon.model.entity.UserInterfaceInfo;
 import com.yupi.project.exception.BusinessException;
+import com.yupi.project.exception.ThrowUtils;
 import com.yupi.project.mapper.UserInterfaceInfoMapper;
 import com.yupi.project.service.UserInterfaceInfoService;
+import com.yupi.project.utils.SqlUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+
 /**
-* @author 86136
-* @description 针对表【user_interface_info(用户调用接口关系)】的数据库操作Service实现
-* @createDate 2024-02-16 15:54:26
-*/
+ * @author csw
+ * @description 针对表【user_interface_info(用户调用接口关系)】的数据库操作Service实现
+ * @createDate 2023-06-17 12:32:57
+ */
 @Service
 public class UserInterfaceInfoServiceImpl extends ServiceImpl<UserInterfaceInfoMapper, UserInterfaceInfo>
-    implements UserInterfaceInfoService {
+        implements UserInterfaceInfoService {
+
+    @Resource
+    private UserInterfaceInfoMapper userInterfaceInfoMapper;
 
     @Override
     public void validUserInterfaceInfo(UserInterfaceInfo userInterfaceInfo, boolean add) {
-        //判断接口信息对象是否为空，为空则抛出参数错误的异常
         if (userInterfaceInfo == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 如果是添加操作
+        Long userId = userInterfaceInfo.getUserId();
+        Long interfaceInfoId = userInterfaceInfo.getInterfaceInfoId();
+        Integer totalNum = userInterfaceInfo.getTotalNum();
+        Integer leftNum = userInterfaceInfo.getLeftNum();
+
+        List<UserInterfaceInfo> list = this.lambdaQuery()
+                .eq(UserInterfaceInfo::getUserId, userId)
+                .eq(UserInterfaceInfo::getInterfaceInfoId, interfaceInfoId)
+                .list();
+        if (!list.isEmpty()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "该用户已经拥有该接口");
+        }
+
+        // 创建时，参数不能为空
         if (add) {
-            if (userInterfaceInfo.getInterfaceInfoId() <= 0 || userInterfaceInfo.getUserId() <= 0) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR,"接口或用户不存在");
-            }
-        }
-        if (userInterfaceInfo.getLeftNum() < 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"剩余接口次数不能小于0");
+            ThrowUtils.throwIf(userId == null || interfaceInfoId == null, ErrorCode.PARAMS_ERROR);
         }
     }
 
+
+    /**
+     * 获取查询包装类
+     *
+     * @param interfaceInfoQueryRequest
+     * @return
+     */
     @Override
-    public boolean invokeCount(long interfaceInfoId, long userId) {
-        if (interfaceInfoId <= 0 || userId <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    public QueryWrapper<UserInterfaceInfo> getQueryWrapper(UserInterfaceInfoQueryRequest interfaceInfoQueryRequest) {
+
+        QueryWrapper<UserInterfaceInfo> queryWrapper = new QueryWrapper<>();
+        if (interfaceInfoQueryRequest == null) {
+            return queryWrapper;
         }
-        // 使用 UpdateWrapper 对象来构建更新条件
-        UpdateWrapper<UserInterfaceInfo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("interfaceInfoId", interfaceInfoId);
-        updateWrapper.eq("userId", userId);
-        //TODO 1. 加入Redission分布式锁，保证数据的一致性
-        //修复leftNum < 0还会继续递减的bug，使用乐观锁解决数据多线程情况下的剩余调用接口数量异常问题
-        updateWrapper.gt("leftNum", 0);
-        updateWrapper.setSql("leftNum = leftNum - 1 , totalNum = totalNum + 1");
-        boolean update = this.update(updateWrapper);
-        if(!update) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "剩余接口调用次数不足，请充值！");
+
+        String searchText = interfaceInfoQueryRequest.getSearchText();
+        Long id = interfaceInfoQueryRequest.getId();
+        Long userId = interfaceInfoQueryRequest.getUserId();
+        Long interfaceInfoId = interfaceInfoQueryRequest.getInterfaceInfoId();
+        Integer totalNum = interfaceInfoQueryRequest.getTotalNum();
+        Integer leftNum = interfaceInfoQueryRequest.getLeftNum();
+        Integer status = interfaceInfoQueryRequest.getStatus();
+        String sortField = interfaceInfoQueryRequest.getSortField();
+        String sortOrder = interfaceInfoQueryRequest.getSortOrder();
+
+        // 拼接查询条件
+        if (StringUtils.isNotBlank(searchText)) {
+            queryWrapper.like("name", searchText);
         }
-        return update;
+        queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(totalNum), "totalNum", totalNum);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(leftNum), "leftNum", leftNum);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(interfaceInfoId), "interfaceInfoId", interfaceInfoId);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(status), "status", status);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
+        queryWrapper.eq("isDelete", false);
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
+                sortField);
+        return queryWrapper;
+    }
+
+
+    @Override
+    public Page<UserInterfaceInfo> getUserInterfaceInfoVOPage(Page<UserInterfaceInfo> userInterfaceInfoPage, HttpServletRequest request) {
+        List<UserInterfaceInfo> interfaceInfoList = userInterfaceInfoPage.getRecords();
+        Page<UserInterfaceInfo> interfaceInfoVOPage = new Page<>(userInterfaceInfoPage.getCurrent(), userInterfaceInfoPage.getSize(), userInterfaceInfoPage.getTotal());
+        if (CollectionUtils.isEmpty(interfaceInfoList)) {
+            return interfaceInfoVOPage;
+        }
+        interfaceInfoVOPage.setRecords(interfaceInfoList);
+        return interfaceInfoVOPage;
     }
 
     @Override
-    public Integer getLeftNum(long interfaceInfoId, long userId) {
-        if (interfaceInfoId <= 0 || userId <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        LambdaQueryWrapper<UserInterfaceInfo> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserInterfaceInfo::getInterfaceInfoId, interfaceInfoId);
-        queryWrapper.eq(UserInterfaceInfo::getUserId, userId);
-        UserInterfaceInfo userInterfaceInfo = getOne(queryWrapper);
-        if(userInterfaceInfo == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "剩余接口调用次数不足，请充值！");
-        }
-        return userInterfaceInfo.getLeftNum();
+    public List<UserInterfaceInfo> listTopInvokeInterfaceInfo(int limit) {
+        return userInterfaceInfoMapper.listTopInvokeInterfaceInfo(limit);
     }
 }
 
