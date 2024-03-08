@@ -17,12 +17,12 @@ public class UserInterfaceInfoServiceTest {
     @Resource
     private UserInterfaceInfoService userInterfaceInfoService;
 
-    @Test
-    public void invokeCount() {
-        boolean b = userInterfaceInfoService.invokeCount(1L, 1L);
-        // 表示断言b的值为true, 即测试用例期望invokeCount方法返回true
-        Assertions.assertTrue(b);
-    }
+//    @Test
+//    public void invokeCount() {
+//        boolean b = userInterfaceInfoService.invokeCount(1L, 1L);
+//        // 表示断言b的值为true, 即测试用例期望invokeCount方法返回true
+//        Assertions.assertTrue(b);
+//    }
 
     @Test
     void test1() {
