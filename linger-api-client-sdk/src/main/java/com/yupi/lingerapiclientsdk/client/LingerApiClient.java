@@ -27,7 +27,7 @@ public class LingerApiClient {
     private String secretKey;
 
     public static  String GATEWAY_HOST = "http://localhost:8090";
-//    public static final String GATEWAY_HOST = "http://42.194.128.56:8090";
+//    public static final String GATEWAY_HOST = "http://xxxx:8090";
 
     public LingerApiClient(String accessKey, String secretKey) {
         this.accessKey = accessKey;
