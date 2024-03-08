@@ -6,10 +6,10 @@ import com.yupi.lingerapiclientsdk.client.LingerApiClient;
 import com.yupi.lingerapicommon.common.*;
 import com.yupi.lingerapicommon.constant.CommonConstant;
 import com.yupi.lingerapicommon.constant.UserConstant;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoAddRequest;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoInvokeRequest;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoQueryRequest;
-import com.yupi.lingerapicommon.model.dto.interfaceInfo.InterfaceInfoUpdateRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoAddRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoInvokeRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
+import com.yupi.lingerapicommon.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
 import com.yupi.lingerapicommon.model.entity.User;
 import com.yupi.lingerapicommon.model.enums.InterfaceInfoStatusEnum;
@@ -213,7 +213,7 @@ public class InterfaceInfoController {
         InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
         ThrowUtils.throwIf(oldInterfaceInfo == null, ErrorCode.NOT_FOUND_ERROR);
         // 判断是否可以调用
-        String requestParams = interfaceInfoInvokeRequest.getUserRequestParams();
+        String requestParams = interfaceInfoInvokeRequest.getRequestParams();
         // 接口请求地址
         String url = oldInterfaceInfo.getUrl();
         String method = oldInterfaceInfo.getMethod();
@@ -295,7 +295,7 @@ public class InterfaceInfoController {
         // 接口的请求地址
         String url = oldInterfaceInfo.getUrl();
         String method = oldInterfaceInfo.getMethod();
-        String requestParams = interfaceInfoInvokeRequest.getUserRequestParams();
+        String requestParams = interfaceInfoInvokeRequest.getRequestParams();
         //获取客户端SDK
         LingerApiClient lingerApiClient = interfaceInfoService.getLingerApiClient(request);
         lingerApiClient.setGatewayHost(gatewayConfig.getHost());

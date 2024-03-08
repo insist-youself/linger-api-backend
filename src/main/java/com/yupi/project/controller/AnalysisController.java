@@ -43,18 +43,17 @@ public class AnalysisController {
     public BaseResponse<List<InterfaceInfoVO>> ListTopInvokeInterfaceInfo(){
         // 1.获取用户接口表中总调用次数最大的3个接口
         List<UserInterfaceInfo> userInterfaceInfoList = userInterfaceInfoMapper.listTopInvokeInterfaceInfo(3);
-        ThrowUtils.throwIf(userInterfaceInfoList == null, ErrorCode.SYSTEM_ERROR, "接口信息不存在");
+        ThrowUtils.throwIf(userInterfaceInfoList.isEmpty(), ErrorCode.SYSTEM_ERROR, "接口信息不存在");
         // 2.使用stream流按接口id进行分类
         Map<Long, List<UserInterfaceInfo>> map = userInterfaceInfoList.stream()
                 .collect(Collectors.groupingBy(UserInterfaceInfo::getInterfaceInfoId));
         QueryWrapper<InterfaceInfo> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("id", map.keySet());
         List<InterfaceInfo> list = interfaceInfoService.list(queryWrapper);
-        ThrowUtils.throwIf(list == null, ErrorCode.SYSTEM_ERROR, "接口信息不存在");
+        ThrowUtils.throwIf(list == null, ErrorCode.PARAMS_ERROR, "接口信息不存在");
         // 构建接口信息vo列表，使用流式处理将接口信息映射为接口信息vo对象，并加入到列表中
         List<InterfaceInfoVO> interfaceInfoVOList = list.stream().map(interfaceInfo -> {
-            InterfaceInfoVO interfaceInfoVO = new InterfaceInfoVO();
-            BeanUtil.copyProperties(interfaceInfo, interfaceInfoVO);
+            InterfaceInfoVO interfaceInfoVO = InterfaceInfoVO.objToVo(interfaceInfo);
             interfaceInfoVO.setTotalNum(map.get(interfaceInfo.getId()).get(0).getTotalNum());
             return interfaceInfoVO;
         }).collect(Collectors.toList());
