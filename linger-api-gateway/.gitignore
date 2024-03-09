@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+application-prod.yml
+application.yml
+### todo 暂时不提交
+#linger-api-backend/src/main/resources/application-prod.yml
+#apiclient_key.pem
+#apiclient_cert.pem
