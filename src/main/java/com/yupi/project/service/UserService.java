@@ -15,6 +15,17 @@ import java.util.List;
  */
 public interface UserService extends IService<com.yupi.lingerapicommon.model.entity.User> {
 
+
+    /**
+     * 管理员新增用户
+     * @param userAccount   用户账户
+     * @param userPassword  用户密码
+     * @param userProfile   用户简介
+     * @return  新用户 id
+     */
+    public long addUser(String userAccount, String userPassword, String userProfile);
+
+
     /**
      * 用户注册
      *

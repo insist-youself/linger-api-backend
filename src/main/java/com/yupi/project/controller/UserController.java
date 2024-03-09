@@ -143,11 +143,14 @@ public class UserController {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtils.copyProperties(userAddRequest, user);
-        boolean result = userService.save(user);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(user.getId());
+        String userAccount = userAddRequest.getUserAccount();
+        String userProfile = userAddRequest.getUserProfile();
+        final String defaultUserPassword = "12345678";
+        if (StringUtils.isBlank(userAccount)) {
+            return null;
+        }
+        long result = userService.addUser(userAccount, defaultUserPassword, userProfile);
+        return ResultUtils.success(result);
     }
 
     /**

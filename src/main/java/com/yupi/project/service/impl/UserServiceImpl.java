@@ -51,6 +51,52 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     private static final String SALT = "yupi";
 
     @Override
+    public long addUser(String userAccount, String userPassword, String userProfile) {
+        // 1. 校验
+        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        if (userAccount.length() < 4) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+        }
+        if (userPassword.length() < 8 ) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        }
+
+        synchronized (userAccount.intern()) {
+            // 账户不能重复
+            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("userAccount", userAccount);
+            long count = userMapper.selectCount(queryWrapper);
+            if (count > 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+            }
+            // 2. 加密
+            String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+            // 3. 分配 accessKey, secretKey
+            // 使用 DigestUtil.md5Hex 将盐值、用户账户 和 5或8 位随机数进行 md5 加密
+            String accessKey = DigestUtil.md5Hex(SALT + userAccount + RandomUtil.randomString(5));
+            String secretKey = DigestUtil.md5Hex(SALT + userAccount + RandomUtil.randomString(8));
+            // 3. 插入数据
+            User user = new User();
+            user.setUserAccount(userAccount);
+            user.setUserName(StringUtils.upperCase(userAccount));
+            user.setUserPassword(encryptPassword);
+            user.setAccessKey(accessKey);
+            user.setSecretKey(secretKey);
+            user.setUserAvatar("https://image-bed-ichensw.oss-cn-hangzhou.aliyuncs.com/Multiavatar-f5871c303317a4dafbf6.png");
+            if (StringUtils.isNotBlank(userProfile)){
+                user.setUserProfile(userProfile);
+            }
+            boolean saveResult = this.save(user);
+            if (!saveResult) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
+            }
+            return user.getId();
+        }
+    }
+
+    @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
