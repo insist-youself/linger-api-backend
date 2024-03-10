@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: linger-api-backend
+  # DataSource Config
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/linger_api
+    username: xxxxxxx
+    password: xxxxxxx
+  # 支持 swagger3
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+  # session 失效时间（分钟）
+  session:
+    # 30 天过期
+    timeout: 2592000
+    # todo 取消注释开启分布式 session（须先配置 Redis）
+    store-type: redis
+  # redis 配置
+  redis:
+    port: 6379
+    host: 192.168.108.100
+    database: 1
+    password: xxxxxxxxxxxx
+
+  # Elasticsearch 配置
+  # todo 需替换配置，然后取消注释
+  #  elasticsearch:
+  #    uris: http://localhost:9200
+  #    username: root
+  #    password: 123456
+  # 文件上传
+  servlet:
+    multipart:
+      # 大小限制
+      max-file-size: 10MB
+
+server:
+  port: 7529
+  address: 0.0.0.0
+  servlet:
+    context-path: /api
+    session:
+      cookie:
+        # 一周
+        max-age: 604800
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+
+linger:
+  gateway:
+    host: http://localhost:8090
+
+aliyun:
+  oss:
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    urlPrefix: http://xxxxxxxxxxx.oss-cn-hangzhou.aliyuncs.com
+    accessKeyId: xxxxxxxxxxxxx
+    accessKeySecret: xxxxxxxxxxxxx
+    bucketName: xxxxxxxxxxxxx
+    fileHost: /api-files
+
+# 以下配置指定了应用的名称、使用的协议（Dubbo）、注册中心的类型（Nacos）和地址
+dubbo:
+  application:
+    enable-file-cache: false
+    # 设置应用的名称
+    name: dubbo-springboot-demo-provider
+    # 指定使用 Dubbo 协议，且端口设置为 -1，表示随机分配可用端口
+  protocol:
+    name: dubbo
+    port: 22221
+  registry:
+    # 配置注册中心为 Nacos，使用的地址是 nacos://localhost:8848
+    id: nacos-registry
+    # 线上修改为服务器内网地址，参考nacos启动后的链接 比如 address: nacos://123.123.4.5:8848
+    #    address: nacos://xxxx:8848
+    address: nacos://localhost:8848
