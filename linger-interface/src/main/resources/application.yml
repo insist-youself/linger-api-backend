@@ -1,0 +1,9 @@
+server:
+  port: 8123
+#  servlet:
+#    context-path: /api
+#
+#linger:
+#  client:
+#    access-key: yupi
+#    secret-key: abcdefgh
