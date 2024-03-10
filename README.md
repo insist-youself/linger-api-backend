@@ -6,7 +6,7 @@
 
 在线体验地址：[Linger API](http://liu-lian.com.cn)
 
-前端开源地址：https://github.com/insist-youself/linger-api-frontend/security/policy
+前端开源地址：https://github.com/insist-youself/linger-api-frontend
 
 ## 项目展示
 
