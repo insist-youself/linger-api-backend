@@ -2,6 +2,7 @@ package com.yupi.lingerapigateway.filter;
 
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.URLUtil;
+import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.yupi.lingerapiclientsdk.utils.SignUtils;
 import com.yupi.lingerapicommon.common.ErrorCode;
 import com.yupi.lingerapicommon.model.entity.InterfaceInfo;
@@ -174,7 +175,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
                             Flux<? extends DataBuffer> fluxBody = Flux.from(body);
                             return super.writeWith(fluxBody.map(dataBuffer -> {
                                 //7.调用 invokeCount,接口调用次数 + 1
-                                // 因为网关项目没引入MyBatis等操作数据库的类库，如果该操作较为复杂，可以由backend增删改查项目提供接口，我们直接调用，不用再重复写逻辑了。
+                                // 因为网关项目没引入MyBatis等操作数据库的类库，因为该操作较为繁琐，可以由backend增删改查项目提供接口，我们直接调用，不用再重复写逻辑了。
                                 try {
                                     postHandle(exchange.getRequest(), exchange.getResponse(), interfaceInfoId, userId);
                                 } catch (Exception e) {
@@ -253,7 +254,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
     private void addInterfaceNum(String nonce, Long interfaceInfoId, Long userId) {
         /*String nonce = request.getHeaders().getFirst("nonce");*/
         if (StringUtil.isEmpty(nonce)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "请求重复");
+            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "请求错误");
         }
         UserInterfaceInfo userInterfaceInfo = innerUserInterfaceInfoService.hasLeftNum(interfaceInfoId, userId);
         // 接口未绑定用户
@@ -268,6 +269,7 @@ public class CustomGlobalFilter implements GlobalFilter, Ordered {
         }
         redisTemplate.opsForValue().set(nonce, 1, 5, TimeUnit.MINUTES);
         innerUserInterfaceInfoService.invokeCount(interfaceInfoId, userId);
+
     }
 
     @Override

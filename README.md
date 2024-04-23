@@ -12,22 +12,22 @@
 
 
 - 登录页面
-  ![img.png](img.png)
+  ![img.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img.png)
 - 接口商店
-  ![img_1.png](img_1.png)
+  ![img_1.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_1.png)
 - 我的接口
-  ![img_2.png](img_2.png)
+  ![img_2.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_2.png)
 - 接口调用
-  ![img_8.png](img_8.png)
-  ![img_9.png](img_9.png)
+  ![img_8.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_8.png)
+  ![img_9.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_9.png)
 - 接口管理
-  ![img_3.png](img_3.png)
+  ![img_3.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_3.png)
 - 用户管理
-  ![img_10.png](img_10.png)
+  ![img_10.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_10.png)
 - 接口分析
-  ![img_4.png](img_4.png)
+  ![img_4.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_4.png)
 - 个人中心
-  ![img_5.png](img_5.png)
+  ![img_5.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_5.png)
 
 ## 目录结构
 
@@ -43,7 +43,7 @@
 
 ## 系统架构
 
-![img_6.png](img_6.png)
+![img_6.png](https://webs-tlias-plus.oss-cn-hangzhou.aliyuncs.com/img_6.png)
 
 ## 技术选型
 
